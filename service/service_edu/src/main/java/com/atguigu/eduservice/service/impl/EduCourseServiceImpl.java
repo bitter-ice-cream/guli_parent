@@ -1,18 +1,27 @@
 package com.atguigu.eduservice.service.impl;
 
+import com.atguigu.eduservice.entity.EduChapter;
 import com.atguigu.eduservice.entity.EduCourse;
 import com.atguigu.eduservice.entity.EduCourseDescription;
+import com.atguigu.eduservice.entity.EduTeacher;
 import com.atguigu.eduservice.entity.vo.CourseInfoVo;
 import com.atguigu.eduservice.entity.vo.CoursePublishVo;
+import com.atguigu.eduservice.entity.vo.CourseQuery;
 import com.atguigu.eduservice.mapper.EduCourseDescriptionMapper;
 import com.atguigu.eduservice.mapper.EduCourseMapper;
+import com.atguigu.eduservice.service.EduChapterService;
 import com.atguigu.eduservice.service.EduCourseService;
+import com.atguigu.eduservice.service.EduVideoService;
 import com.atguigu.servicebase.exceptionhandler.CustomException;
+import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
+import org.springframework.util.StringUtils;
 
 import javax.annotation.Resource;
+import java.util.List;
 
 /**
  * <p>
@@ -30,10 +39,17 @@ public class EduCourseServiceImpl extends ServiceImpl<EduCourseMapper, EduCourse
     @Resource
     EduCourseDescriptionMapper descriptionMapper;
 
+    @Resource
+    EduVideoService eduVideoService;
+
+    @Resource
+    EduChapterService eduChapterService;
+
     @Override
     public String saveCourseInfo(CourseInfoVo courseInfoVo) {
         //1 向课程表添加课程基本信息
         EduCourse eduCourse = new EduCourse();
+        eduCourse.setIsDeleted(0);
         BeanUtils.copyProperties(courseInfoVo,eduCourse);
         int insert = courseMapper.insert(eduCourse);
         if (insert<=0){
@@ -84,4 +100,46 @@ public class EduCourseServiceImpl extends ServiceImpl<EduCourseMapper, EduCourse
         CoursePublishVo publishCourseInfo = courseMapper.getPublishCourseInfo(id);
         return publishCourseInfo;
     }
+
+    @Override
+    public void coursePageQuery(Page<EduCourse> eduCoursePage, CourseQuery courseQuery) {
+        //构建条件
+        QueryWrapper<EduCourse> queryWrapper = new QueryWrapper<>();
+        String title = courseQuery.getTitle();
+        String status = courseQuery.getStatus();
+
+        if (!StringUtils.isEmpty(title)) {
+            queryWrapper.like("title", title);
+        }
+
+        if (!StringUtils.isEmpty(status)) {
+            queryWrapper.eq("status", status);
+        }
+
+        //排序
+        queryWrapper.orderByDesc("gmt_create");
+        courseMapper.selectPage(eduCoursePage,queryWrapper);
+    }
+
+    //删除课程
+    @Override
+    public void removeCourse(String courseId) {
+        //根据课程id删除小节
+        eduVideoService.deleteByCourseId(courseId);
+
+        //根据课程id删除章节
+        eduChapterService.deleteByCourseId(courseId);
+
+        //根据课程id删除描述
+        descriptionMapper.deleteById(courseId);
+
+        //根据课程id删除课程本身
+        int result = courseMapper.deleteById(courseId);
+
+        if (result==0){//失败返回
+            throw new CustomException(20001,"删除失败");
+        }
+    }
+
+
 }

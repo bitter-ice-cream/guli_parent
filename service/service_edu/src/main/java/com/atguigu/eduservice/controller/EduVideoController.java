@@ -2,11 +2,14 @@ package com.atguigu.eduservice.controller;
 
 
 import com.atguigu.commonutils.R;
+import com.atguigu.eduservice.client.VodClient;
 import com.atguigu.eduservice.entity.EduChapter;
 import com.atguigu.eduservice.entity.EduCourse;
 import com.atguigu.eduservice.entity.EduVideo;
 import com.atguigu.eduservice.service.EduVideoService;
+import com.atguigu.servicebase.exceptionhandler.CustomException;
 import com.sun.xml.bind.v2.TODO;
+import org.apache.commons.lang.StringUtils;
 import org.springframework.web.bind.annotation.*;
 
 import javax.annotation.Resource;
@@ -25,7 +28,10 @@ import javax.annotation.Resource;
 public class EduVideoController {
 
     @Resource
-    EduVideoService eduVideoService;
+    private EduVideoService eduVideoService;
+
+    @Resource
+    private VodClient vodClient;
 
     //添加小节
     @PostMapping("addVideo")
@@ -35,10 +41,20 @@ public class EduVideoController {
     }
 
     //删除小节
-    // TODO: 2022/10/23 后续完善，删除小节需要把视频删除
     @DeleteMapping("{videoId}")
     public R deleteVideo(@PathVariable String videoId){
-        boolean b = eduVideoService.removeById(videoId);
+        //根据小节id获取视频id，调用方法实现视频删除
+        EduVideo video = eduVideoService.getById(videoId);
+        //根据视频id实现删除
+        if (!StringUtils.isEmpty(video.getVideoSourceId())){
+            R result = vodClient.removeAlyVideo(video.getVideoSourceId());
+            if (result.getCode()==20001){
+                throw new CustomException(20001,"删除视频失败，熔断器");
+            }
+
+        }
+        eduVideoService.removeById(videoId);
+
         return R.ok();
     }
 

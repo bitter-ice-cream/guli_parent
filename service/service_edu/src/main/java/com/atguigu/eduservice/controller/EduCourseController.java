@@ -5,10 +5,13 @@ import com.atguigu.commonutils.R;
 import com.atguigu.eduservice.entity.EduCourse;
 import com.atguigu.eduservice.entity.vo.CourseInfoVo;
 import com.atguigu.eduservice.entity.vo.CoursePublishVo;
+import com.atguigu.eduservice.entity.vo.CourseQuery;
 import com.atguigu.eduservice.service.EduCourseService;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import org.springframework.web.bind.annotation.*;
 
 import javax.annotation.Resource;
+import java.util.List;
 
 /**
  * <p>
@@ -26,6 +29,30 @@ public class EduCourseController {
     private EduCourseService eduCourseService;
 
 
+    @PostMapping("{courseId}")
+    public R deleteCourse(@PathVariable String courseId){
+        eduCourseService.removeCourse(courseId);
+        return R.ok();
+    }
+
+
+    /**
+     *课程列表分页条件查询
+     */
+    @PostMapping("{current}/{limit}")
+    public R coursePageQuery(@PathVariable long current, @PathVariable long limit,
+                                 @RequestBody(required = false) CourseQuery courseQuery){
+        //创建page对象
+        Page<EduCourse> coursePage = new Page<>(current,limit);
+        eduCourseService.coursePageQuery(coursePage, courseQuery);
+
+        long total = coursePage.getTotal();
+        List<EduCourse> records = coursePage.getRecords();
+        return R.ok().data("total",total).data("rows",records);
+    }
+
+
+
     /**
      * 添加课程基本信息的方法
      * @param courseInfoVo
@@ -33,7 +60,7 @@ public class EduCourseController {
      */
     @PostMapping("addCourseInfo")
     public R addCourseInfo(@RequestBody CourseInfoVo courseInfoVo){
-        String id =eduCourseService.saveCourseInfo(courseInfoVo);
+        String id = eduCourseService.saveCourseInfo(courseInfoVo);
         return R.ok().data("courseId",id);
     }
 

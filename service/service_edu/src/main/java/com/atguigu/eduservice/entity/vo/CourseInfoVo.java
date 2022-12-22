@@ -1,5 +1,6 @@
 package com.atguigu.eduservice.entity.vo;
 
+import com.baomidou.mybatisplus.annotation.TableLogic;
 import io.swagger.annotations.ApiModelProperty;
 import lombok.Data;
 
@@ -35,4 +36,5 @@ public class CourseInfoVo {
 
     @ApiModelProperty(value = "课程简介")
     private String description;
+
 }
